@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: getting-started
+  labels:
+    app: getting-started
 spec:
   containers:
   - name: getting-started
@@ -15,3 +17,4 @@ spec:
         cpu: "500m"
     ports:
     - containerPort: 3000
+
