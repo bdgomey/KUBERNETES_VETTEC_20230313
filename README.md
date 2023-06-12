@@ -216,3 +216,114 @@ kubectl get services
 ```
 
 That's it! You've now created your first Pod and Service in Kubernetes.
+
+## Module 2: Deployments and StatefulSets
+
+---
+
+## Replication and Deployment: Maintaining availability
+
+- [Replication and Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) in Kubernetes are managed by Deployment objects. Deployments are designed to ensure that a specified number of identical Pods - which can be thought of as instances of an application - are always running. They can create new Pods, remove old Pods, and adopt existing Pods to maintain the desired state. A Deployment ensures availability of your application by automatically replacing instances that go down or are deleted. For example, if your web application's Deployment consists of four replicas, then Kubernetes will start up another instance as soon as it notices that the count has fallen below four.
+
+Here's an example of a Deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "500m"
+          limits:
+            memory: "256Mi"
+            cpu: "1000m"
+        ports:
+        - containerPort: 80
+```
+
+- In a real-world scenario, imagine you have a web application that serves users globally. Deployments can ensure that there are always enough instances of your application available to serve your users, even if some instances go down due to hardware failure or for maintenance.
+
+## Rolling updates and Rollbacks: Versioning and recovering
+
+- [Rolling updates and Rollbacks](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-back-a-deployment) are crucial aspects of versioning and recovering in Kubernetes.
+
+### Rolling Updates
+
+- A Rolling update is a process that allows you to update the version of an application without downtime. Imagine your application as a row of dominoes. Rather than knocking them all down at once (which would mean a period of downtime), Kubernetes "knocks them down" one at a time - meaning it updates each instance of your application individually.
+
+  - This is done by bringing up a new instance with the updated version of your application, then shutting down an old instance, and repeating this process until all instances are updated. This way, your application remains available during the entire update process.
+
+  - In a more technical term, when you update the Docker image in the Pod template of a Deployment, Kubernetes notices the change and begins the rolling update process.
+
+  - Here's how you might perform a rolling update using kubectl: `kubectl set image deployments/kubernetes-bootcamp kubernetes-bootcamp=jocatalin/kubernetes-bootcamp:v2`
+
+  - This command updates the Docker image of your Deployment to a new version (`v2`).
+
+### Rollbacks
+
+- A Rollback is essentially an "undo" operation. Just like you might undo a typo in a text document, you can undo a Deployment in Kubernetes. This is particularly useful if you discover that your new application version has a bug and you want to go back to the previous version.
+
+  - For instance, if you notice an issue after updating the Docker image in your Deployment, you can revert to the older version using a Rollback. Here's how you might perform a rollback using kubectl: `kubectl rollout undo deployment.v1.apps/nginx-deployment`
+
+  - This command reverts your Deployment to the state it was in before the latest update.
+
+  - The combination of Rolling updates and Rollbacks provides you with a powerful tool for versioning and recovering. You can update your applications confidently, knowing that if something goes wrong, you can easily revert back to the previous version
+
+Here's an example of a Deployment YAML file with a Rolling update strategy:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3  # Initial number of instances
+  selector:
+    matchLabels:
+      app: nginx  # This deployment applies to Pods with label "app=nginx"
+  strategy:
+    type: RollingUpdate  # The strategy used to replace old Pods by new ones
+    rollingUpdate:
+      maxUnavailable: 1  # Max number of pods that can be unavailable during the update
+      maxSurge: 1  # Max number of pods that can be scheduled above the original number of pods
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2  # Use version 1.14.2 of nginx for the initial deployment
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "500m"
+          limits:
+            memory: "256Mi"
+            cpu: "1000m"
+        ports:
+        - containerPort: 80
+```
+  
+- This example creates a Deployment with three replicas of nginx version 1.14.2.
+
+  - To update the nginx version, change the image field to the new version (e.g., nginx:1.16.1) and apply the updated configuration with kubectl apply. Kubernetes will start a rolling update.
+
+  - If you discover an issue with the new version, you can rollback the Deployment using: `kubectl rollout undo deployment nginx-deployment`
+
+  - This command undoes the last Deployment update, returning the nginx Pods to the previous version.
